@@ -1,0 +1,26 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Quantum tests</title>
+    <link href="/external/mocha.css" rel="stylesheet" />
+</head>
+<body>
+<div id="mocha"></div>
+
+<script src="/external/jquery.min.js"></script>
+<script src="/external/chai.js"></script>
+<script src="/external/mocha.js"></script>
+<script src="/external/sinon-7.0.0.js"></script>
+
+<script>mocha.setup('bdd')</script>
+
+<script src="/tests/Quantum.Quant.js"></script>
+
+<script>
+    mocha.checkLeaks();
+    mocha.globals(['jQuery']);
+    mocha.run();
+</script>
+</body>
+</html>
+
