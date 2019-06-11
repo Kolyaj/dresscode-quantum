@@ -39,5 +39,23 @@
             quant2.setValue(5);
             chai.assert.equal(quant3.getValue(), 5);
         });
+
+        it('change event passes value and prevValue', function() {
+            var quant = new Quantum.Quant(5);
+            var callback = sinon.spy();
+            quant.addEventListener('change', callback);
+            quant.setValue(6);
+            chai.assert.isOk(callback.called);
+            chai.assert.equal(callback.firstCall.args[0].value, 6);
+            chai.assert.equal(callback.firstCall.args[0].prevValue, 5);
+        });
+
+        it('change does not fire when nested quant replaced by another quant with the same value', function() {
+            var quant2 = new Quantum.Quant(new Quantum.Quant(5));
+            var callback = sinon.spy();
+            quant2.addEventListener('change', callback);
+            quant2.setValue(new Quantum.Quant(5));
+            chai.assert.isOk(callback.notCalled);
+        });
     });
 })();
