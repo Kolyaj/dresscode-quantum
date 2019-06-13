@@ -51,11 +51,19 @@
         });
 
         it('change does not fire when nested quant replaced by another quant with the same value', function() {
-            var quant2 = new Quantum.Quant(new Quantum.Quant(5));
+            var quant = new Quantum.Quant(new Quantum.Quant(5));
             var callback = sinon.spy();
-            quant2.addEventListener('change', callback);
-            quant2.setValue(new Quantum.Quant(5));
+            quant.addEventListener('change', callback);
+            quant.setValue(new Quantum.Quant(5));
             chai.assert.isOk(callback.notCalled);
+        });
+
+        it('to when callback passes scalarValue, not direct value', function() {
+            var quant = new Quantum.Quant(new Quantum.Quant(5));
+            var callback = sinon.spy();
+            quant.when(callback);
+            chai.assert.isOk(callback.calledOnce);
+            chai.assert.equal(callback.firstCall.args[0], 5);
         });
     });
 })();
