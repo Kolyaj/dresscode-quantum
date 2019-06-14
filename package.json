@@ -1,6 +1,6 @@
 {
     "name": "dresscode-quantum",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "dependencies": {
         "dresscode-bricks": "latest"
     }
