@@ -1,6 +1,16 @@
 (function() {
     //#imports
 
+    var clock;
+
+    beforeEach(function() {
+        clock = sinon.useFakeTimers();
+    });
+
+    afterEach(function() {
+        clock.restore();
+    });
+
     describe('Quantum.Quant', function() {
         it('getValue returns initial value', function() {
             var quant = new Quantum.Quant(5);
@@ -64,6 +74,19 @@
             quant.when(callback);
             chai.assert.isOk(callback.calledOnce);
             chai.assert.equal(callback.firstCall.args[0], 5);
+        });
+
+        it('debounced quant changed once', function() {
+            var quant = new Quantum.Quant(1);
+            var debounced = Quantum.debounce(quant, 1000);
+            chai.expect(debounced.getValue()).to.equal(1);
+            quant.setValue(2);
+            quant.setValue(3);
+            quant.setValue(4);
+            quant.setValue(5);
+            chai.expect(debounced.getValue()).to.equal(1);
+            clock.tick(1000);
+            chai.expect(debounced.getValue()).to.equal(5);
         });
     });
 })();
