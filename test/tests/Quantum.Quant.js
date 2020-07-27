@@ -88,5 +88,13 @@
             clock.tick(1000);
             chai.expect(debounced.getValue()).to.equal(5);
         });
+
+        it('quant.spread', function() {
+            var quant = new Quantum.Quant([1, 2]);
+            var callback = sinon.spy();
+            quant.spread(callback);
+            chai.assert.equal(callback.firstCall.args[0], 1);
+            chai.assert.equal(callback.firstCall.args[1], 2);
+        });
     });
 })();
