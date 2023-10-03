@@ -154,5 +154,21 @@
             quant2.setValue(4);
             chai.assert.equal(result, 7);
         });
+
+        it('Forced change of quant in Combinator', function() {
+            var q1 = new Quantum.Quant([1]);
+            var q2 = Quantum.combine([q1]).spread(function(ar) {
+                return ar.length;
+            });
+            var length = q2.getValue();
+            q2.addEventListener('change', function(evt) {
+                length = evt.value;
+            });
+            chai.assert.equal(length, 1);
+            q1.getValue().push(2);
+            chai.assert.equal(length, 1);
+            q1.touch();
+            chai.assert.equal(length, 2);
+        });
     });
 })();
