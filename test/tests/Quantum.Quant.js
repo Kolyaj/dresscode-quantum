@@ -170,5 +170,64 @@
             q1.touch();
             chai.assert.equal(length, 2);
         });
+
+        it('Several calls of getValue return the same value', function() {
+            var q1 = new Quantum.Quant(1);
+            var q2 = q1.when(function() {
+                return {};
+            });
+            chai.assert.equal(q2.getValue(), q2.getValue());
+        });
+
+        it('Several calls of getValue of combine return the same value', function() {
+            var q1 = new Quantum.Quant(1);
+            var q2 = Quantum.combine([q1]);
+            chai.assert.equal(q2.getValue(), q2.getValue());
+        });
+
+        it('Long chain of quants', function() {
+            var q1 = new Quantum.Quant(1);
+            var q2 = q1.when(function(value) {
+                return value + 1;
+            });
+            var q3 = q2.when(function(value) {
+                return value + 1;
+            });
+            q1.setValue(5);
+            chai.assert.equal(q3.getValue(), 7);
+        });
+
+        it('Several calls of getValue of long when-chain quant', function() {
+            var q1 = new Quantum.Quant();
+            var q2 = q1.when(function() {
+                return 1;
+            }).when(function() {
+                return {};
+            });
+            chai.assert.equal(q2.getValue(), q2.getValue());
+        });
+
+        it('Long chain of when', function() {
+            var q1 = new Quantum.Quant(1);
+            var q2 = q1.when(function(q) {
+                return q + 1;
+            });
+            var q3 = q2.when(function(q) {
+                return q + 1;
+            });
+            chai.assert.equal(q3.getValue(), 3);
+            q1.setValue(5);
+            chai.assert.equal(q3.getValue(), 7);
+        });
+
+        it('Quantum.Array with getValue', function() {
+            var array = new Quantum.Array();
+            var length = array.when(function(a) {
+                return a.length;
+            });
+            chai.assert.equal(length.getValue(), 0);
+            array.push(5);
+            chai.assert.equal(length.getValue(), 1);
+        });
     });
 })();
