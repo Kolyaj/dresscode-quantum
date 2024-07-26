@@ -229,5 +229,14 @@
             array.push(5);
             chai.assert.equal(length.getValue(), 1);
         });
+
+        it('Quantum.format', function() {
+            var foo = 5;
+            var bar = new Quantum.Quant(6);
+            var str = Quantum.format('foo: ${0}, bar: ${1}', foo, bar);
+            chai.assert.equal(str.getValue(), 'foo: 5, bar: 6');
+            bar.setValue(7);
+            chai.assert.equal(str.getValue(), 'foo: 5, bar: 7');
+        });
     });
 })();
