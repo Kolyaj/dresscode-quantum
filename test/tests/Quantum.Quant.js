@@ -238,5 +238,27 @@
             bar.setValue(7);
             chai.assert.equal(str.getValue(), 'foo: 5, bar: 7');
         });
+
+        it('removeEventListener', function() {
+            var quant = new Quantum.Quant();
+            var listener1 = sinon.spy();
+            var listener2 = sinon.spy(function() {
+                quant.removeEventListener('change', listener2);
+            });
+            var listener3 = sinon.spy();
+            quant.addEventListener('change', listener1);
+            quant.addEventListener('change', listener2);
+            quant.addEventListener('change', listener3);
+
+            quant.setValue(1);
+            chai.assert.isOk(listener1.calledOnce);
+            chai.assert.isOk(listener2.calledOnce);
+            chai.assert.isOk(listener3.calledOnce);
+
+            quant.setValue(2);
+            chai.assert.isOk(listener1.calledTwice);
+            chai.assert.isOk(listener2.calledOnce);
+            chai.assert.isOk(listener3.calledTwice);
+        });
     });
 })();
