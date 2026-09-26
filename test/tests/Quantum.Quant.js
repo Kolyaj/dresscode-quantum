@@ -325,6 +325,73 @@
             chai.assert.equal(change.firstCall.args[0].prevValue, 1);
         });
 
+        // Cascade: первый слушатель активирует цепочку целиком, каждый уровень пересчитывается один раз.
+
+        it('adding a listener to the leaf activates the whole when-chain', function() {
+            var modifier = sinon.spy(function(value) {
+                return value + 1;
+            });
+            var root = new Quantum.Quant(1);
+            var mid = root.when(modifier);
+            var leaf = mid.when(function(value) {
+                return value + 1;
+            });
+            var change = sinon.spy();
+            leaf.addEventListener('change', change);
+            chai.assert.equal(modifier.callCount, 1);
+            root.setValue(10);
+            chai.assert.isOk(change.calledOnce);
+            chai.assert.equal(change.firstCall.args[0].value, 12);
+            chai.assert.equal(leaf.getValue(), 12);
+            chai.assert.equal(mid.getValue(), 11);
+            chai.assert.equal(modifier.callCount, 2);
+        });
+
+        it('removing the last listener deactivates the when-chain', function() {
+            var modifier = sinon.spy(function(value) {
+                return value + 1;
+            });
+            var root = new Quantum.Quant(1);
+            var mid = root.when(modifier);
+            var leaf = mid.when(function(value) {
+                return value + 1;
+            });
+            var change = sinon.spy();
+            leaf.addEventListener('change', change);
+            var callsAfterActivation = modifier.callCount;
+            root.setValue(10);
+            chai.assert.equal(modifier.callCount, callsAfterActivation + 1);
+            chai.assert.isOk(change.calledOnce);
+            leaf.removeEventListener('change', change);
+            root.setValue(20);
+            chai.assert.equal(modifier.callCount, callsAfterActivation + 1);
+            chai.assert.equal(change.callCount, 1);
+            chai.assert.equal(leaf.getValue(), 22);
+            chai.assert.equal(modifier.callCount, callsAfterActivation + 2);
+        });
+
+        // Ресанхронизация: замена вложенного источника на активном кванте переключает подписку.
+
+        it('replaces the nested source subscription when a nested quant is swapped while active', function() {
+            var inner1 = new Quantum.Quant(5);
+            var q = new Quantum.Quant(inner1);
+            var change = sinon.spy();
+            q.addEventListener('change', change);
+            inner1.setValue(6);
+            chai.assert.isOk(change.calledOnce);
+            chai.assert.equal(change.firstCall.args[0].value, 6);
+            var inner2 = new Quantum.Quant(100);
+            q.setValue(inner2);
+            chai.assert.equal(change.callCount, 2);
+            chai.assert.equal(change.secondCall.args[0].value, 100);
+            inner1.setValue(7);
+            chai.assert.equal(change.callCount, 2);
+            inner2.setValue(101);
+            chai.assert.equal(change.callCount, 3);
+            chai.assert.equal(change.thirdCall.args[0].value, 101);
+            chai.assert.equal(q.getValue(), 101);
+        });
+
         it('Quantum.series', function() {
             var q = Quantum.series([1, 2, 3], 100);
             chai.assert.equal(q.getValue(), 1);
@@ -445,6 +512,120 @@
             chai.assert.isTrue(e.getValue());
             a.push(1);
             chai.assert.isFalse(e.getValue());
+        });
+
+        // 20260924-2: append/prepend принимают только массив (TypeError иначе).
+
+        it('Array.append accepts only arrays', function() {
+            var a = new Quantum.Array();
+            chai.assert.throws(function() {
+                a.append(null);
+            }, TypeError);
+            chai.assert.throws(function() {
+                a.append(5);
+            }, TypeError);
+            chai.assert.deepEqual(a.getValue(), []);
+        });
+
+        it('Array.append appends array of items', function() {
+            var a = new Quantum.Array([0]);
+            a.append([1, 2]);
+            chai.assert.deepEqual(a.getValue(), [0, 1, 2]);
+        });
+
+        it('Array.splice rejects non-array insertItems', function() {
+            var a = new Quantum.Array([1, 3]);
+            chai.assert.throws(function() {
+                a.splice(1, 0, 5);
+            }, TypeError);
+            chai.assert.deepEqual(a.getValue(), [1, 3]);
+        });
+
+        // 20260924-3: push возвращает новую длину (как нативный).
+
+        it('Array.push returns the new length', function() {
+            var a = new Quantum.Array([1]);
+            chai.assert.equal(a.push(5), 2);
+            chai.assert.equal(a.push(6, 7), 4);
+            chai.assert.deepEqual(a.getValue(), [1, 5, 6, 7]);
+        });
+
+        // 20260924-4: отрицательный start нормализуется (length + start, пол 0).
+
+        it('Array.splice normalizes negative start in events', function() {
+            var a = new Quantum.Array([1, 2, 3]);
+            var remove = sinon.spy();
+            var splice = sinon.spy();
+            a.addEventListener('remove', remove);
+            a.addEventListener('splice', splice);
+            a.splice(-1, 1);
+            chai.assert.deepEqual(a.getValue(), [1, 2]);
+            chai.assert.equal(remove.firstCall.args[0].index, 2);
+            chai.assert.equal(remove.firstCall.args[0].item, 3);
+            chai.assert.equal(splice.firstCall.args[0].start, 2);
+            chai.assert.equal(splice.firstCall.args[0].deleteCount, 1);
+        });
+
+        // 20260924-5: изменения массива из обработчика не затираются (slice берётся после событий).
+
+        it('Array mutation from insert handler is not clobbered', function() {
+            var a = new Quantum.Array([1]);
+            var called = false;
+            a.addEventListener('insert', function() {
+                if (!called) {
+                    called = true;
+                    a.push(99);
+                }
+            });
+            a.push(5);
+            chai.assert.deepEqual(a.getValue(), [1, 5, 99]);
+        });
+
+        it('Array mutation from remove handler is not clobbered', function() {
+            var a = new Quantum.Array([1, 2, 3]);
+            a.addEventListener('remove', function() {
+                a.push(99);
+            });
+            a.pop();
+            chai.assert.deepEqual(a.getValue(), [1, 2, 99]);
+        });
+
+        // 20260924-6: пассивный transform не ресинхронизируется (в отличие от when) — намеренно красный, семантика обсуждается.
+
+        it('passive Array.transform resynchronizes with source array', function() {
+            var a = new Quantum.Array([1]);
+            var t = a.transform(function(x) {
+                return x + 1;
+            });
+            chai.assert.deepEqual(t.getValue(), [2]);
+            a.push(2);
+            chai.assert.deepEqual(t.getValue(), [2, 3]);
+        });
+
+        // 20260924-7: но-оп splice не вызывает событий.
+
+        it('no-op Array.splice does not fire events', function() {
+            var a = new Quantum.Array([1, 2]);
+            var change = sinon.spy();
+            var splice = sinon.spy();
+            a.addEventListener('change', change);
+            a.addEventListener('splice', splice);
+            a.splice(0, 0, []);
+            chai.assert.isOk(change.notCalled);
+            chai.assert.isOk(splice.notCalled);
+            chai.assert.deepEqual(a.getValue(), [1, 2]);
+        });
+
+        it('no-op Array.splice does not cascade false change to transform child', function() {
+            var a = new Quantum.Array([1, 2]);
+            var t = a.transform(function(x) {
+                return x + 1;
+            });
+            var change = sinon.spy();
+            t.addEventListener('change', change);
+            a.splice(0, 0, []);
+            chai.assert.isOk(change.notCalled);
+            chai.assert.deepEqual(t.getValue(), [2, 3]);
         });
     });
 })();
