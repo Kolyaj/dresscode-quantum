@@ -6,7 +6,6 @@
 - [ ] 20260924-7 Но-оп splice исходного массива (`splice(0,0,[])`) вызывает ложный `change` у активного transform-потомка (slice() → новая ссылка → setValue) — lib/Quantum/Array.js.
 - [ ] 20260924-8 `quant.spread(fn)` над не-массивным значением выбрасывает (CreateListFromArrayLike) — решить поведение для не-массивов.
 - [ ] 20260924-9 Не покрыты тестами: whenNull/whenNotNull, series, getTimer, touch, Array-события (insert/remove/splice), transform, isEmpty — test/tests/Quantum.Quant.js (23 теста, одноимённый файл на все модули).
-- [ ] 20260924-10 Нет npm-скриптов: сьют запускается только в браузере через yaxy — добавить `npm test` с node-хarness'ом (проверено: 23 зелёных в Node, harness в сессии).
 - [ ] 20260924-12 Архитектура: базовый модуль жизненного цикла для Quant/Array/Combinator — общий шов «источник зависимости» + явное активное состояние (сейчас: три адаптера одного жизненного цикла без общего модуля, активность имплицитна в guard-проверках `_listeners.length > 0`, переходы в override'ах add/removeEventListener каждого класса) — см. отчёт architecture-review.
 - [ ] 20260924-13 Одиночки без остановки: `Quantum.getTimer` держит node-процесс живым (setInterval навсегда); singleton'ы `Quantum.DOM` игнорируют второй doc; `Quantum.debounce` держит слушатель на источнике навсегда — задокументировать «живёт до конца страницы» или добавить close()/кэш по doc.
 - [ ] 20260924-14 `Quantum.Combinator._obtainScalarValue()` игнорирует аргумент checkParent базового класса — рассогласованный интерфейс, потенциальная путаница при чтении.

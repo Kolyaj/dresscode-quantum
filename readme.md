@@ -33,3 +33,8 @@
 * `Quantum.debounce(quant, delay)` возвращает квант, в котором дебаунсится значение исходного кванта.
 * `Quantum.DOM.getDocumentScroll()` возвращает квант, содержащий позицию скрола документа.
 * `Quantum.DOM.getViewportSize()` возвращает квант, содержащий размер видимой части страницы.
+
+## Разработка
+
+* Тесты: `npm test` (прогоняются в Node; нужен глобальный `dresscodejs` — `npm install -g dresscodejs`).
+* Браузерный запуск тестов: dev-сервер yaxy (см. `.yaxy`, хост `quantum.tests`) — `test/index.html`.
