@@ -627,5 +627,96 @@
             chai.assert.isOk(change.notCalled);
             chai.assert.deepEqual(t.getValue(), [2, 3]);
         });
+
+        // Quantum.flatten (задача 002; решение человека 2026-10-17): всегда
+        // возвращает квант; значение — плоский массив скаляров (полная глубина,
+        // null/undefined/'' сохраняются); полная динамика; квантов во входе нет —
+        // квант статичен.
+
+        it('Quantum.flatten with no quants returns a static Quant with a flat array', function() {
+            var result = Quantum.flatten([1, [2, [3, null, undefined, '']]]);
+            chai.assert.instanceOf(result, Quantum.Quant);
+            chai.assert.deepEqual(result.getValue(), [1, 2, 3, null, undefined, '']);
+            chai.assert.deepEqual(Quantum.flatten([]).getValue(), []);
+        });
+
+        it('Quantum.flatten with quants returns a Quant whose value is a flat scalar array', function() {
+            var q1 = new Quantum.Quant(1);
+            var q2 = new Quantum.Quant(2);
+            var result = Quantum.flatten([q1, [q2]]);
+            chai.assert.instanceOf(result, Quantum.Quant);
+            chai.assert.deepEqual(result.getValue(), [1, 2]);
+        });
+
+        it('Quantum.flatten expands a quant holding a quant to a leaf; result never contains quants', function() {
+            var inner = new Quantum.Quant(5);
+            var outer = new Quantum.Quant(inner);
+            var result = Quantum.flatten([outer]);
+            chai.assert.instanceOf(result, Quantum.Quant);
+            chai.assert.deepEqual(result.getValue(), [5]);
+        });
+
+        it('Quantum.flatten fires on a change of a tracked quant at any depth', function() {
+            var q1 = new Quantum.Quant(1);
+            var q2 = new Quantum.Quant(2);
+            var result = Quantum.flatten([q1, [q2]]);
+            var change = sinon.spy();
+            result.addEventListener('change', change);
+            q2.setValue(3);
+            chai.assert.isOk(change.calledOnce);
+            chai.assert.deepEqual(result.getValue(), [1, 3]);
+        });
+
+        it('Quantum.flatten discovers quants appearing later and tracks them', function() {
+            var q = new Quantum.Quant(null);
+            var result = Quantum.flatten([q]);
+            chai.assert.instanceOf(result, Quantum.Quant);
+            chai.assert.deepEqual(result.getValue(), [null]);
+            var change = sinon.spy();
+            result.addEventListener('change', change);
+            var inner = new Quantum.Quant(7);
+            q.setValue([inner, 8]);
+            chai.assert.isOk(change.calledOnce);
+            chai.assert.deepEqual(result.getValue(), [7, 8]);
+            inner.setValue(9);
+            chai.assert.equal(change.callCount, 2);
+            chai.assert.deepEqual(result.getValue(), [9, 8]);
+        });
+
+        it('Quantum.flatten unsubscribes quants disappearing from content', function() {
+            var q = new Quantum.Quant(null);
+            var result = Quantum.flatten([q]);
+            var change = sinon.spy();
+            result.addEventListener('change', change);
+            var inner = new Quantum.Quant(7);
+            q.setValue([inner, 8]);
+            q.setValue(5);
+            chai.assert.deepEqual(result.getValue(), [5]);
+            inner.setValue(9);
+            chai.assert.equal(change.callCount, 2);
+        });
+
+        it('Quantum.flatten teardown deactivates the chain; passive getValue recomputes', function() {
+            var q = new Quantum.Quant(1);
+            var inner = new Quantum.Quant(7);
+            var result = Quantum.flatten([q, [inner]]);
+            var change = sinon.spy();
+            result.addEventListener('change', change);
+            result.removeEventListener('change', change);
+            q.setValue(2);
+            inner.setValue(9);
+            chai.assert.isOk(change.notCalled);
+            chai.assert.deepEqual(result.getValue(), [2, 9]);
+        });
+
+        it('Quantum.flatten fires change when a source repoints to an equal-content array', function() {
+            var q = new Quantum.Quant([1, 2]);
+            var result = Quantum.flatten([q]);
+            var change = sinon.spy();
+            result.addEventListener('change', change);
+            q.setValue(new Quantum.Quant([1, 2]));
+            chai.assert.isOk(change.calledOnce);
+            chai.assert.deepEqual(result.getValue(), [1, 2]);
+        });
     });
 })();
